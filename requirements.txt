@@ -18,3 +18,4 @@ scikit_learn==1.7.0
 streamlit==1.44.1
 stripe==12.2.0
 uvicorn==0.34.3
+PyMuPDF==1.23.26
