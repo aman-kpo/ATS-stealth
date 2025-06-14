@@ -377,12 +377,6 @@ st.title("🎯 ATS Assassin - Stealth Mode")
 st.markdown("Upload your resume and job description to get AI-powered suggestions for improvement to enhance the ATS score.")
 
 # Note about PDF requirements
-with st.info:
-    st.markdown("""
-    **Important:** This version works with PDFs containing selectable text. 
-    For scanned PDFs, please use an OCR tool first to convert them to text-based PDFs.
-    """)
-
 # Sidebar for configuration
 with st.sidebar:
     st.header("⚙️ Configuration")
