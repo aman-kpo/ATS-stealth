@@ -346,7 +346,7 @@ def analyze_and_update_resume(resume_text: str, job_description_text: str):
     """Analyze resume against job description and provide suggestions."""
     try:
         # Initialize LLM
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
         
         # Create prompt template
         # prompt = ChatPromptTemplate.from_messages([
@@ -371,23 +371,31 @@ def analyze_and_update_resume(resume_text: str, job_description_text: str):
         # ])
 
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an expert ATS scorer and resume optimization assistant.
-            Your PRIMARY GOAL is to help candidates IMPROVE their ATS scores by providing actionable suggestions that will INCREASE their match percentage.
-            
-            IMPORTANT RULES:
-            1. The initial score should reflect the current state of the resume honestly
-            2. The suggested improvements MUST be substantial enough to increase the score by at least 10-20 points
-            3. Focus on incorporating missing keywords, rephrasing experiences to match job requirements, and highlighting relevant skills
-            4. The updated resume content should show clear improvements while remaining truthful
-            5. NEVER suggest changes that would decrease the score
-            
-            Your analysis process:
-            1. Score the current resume (be realistic but not overly harsh)
-            2. Identify specific gaps between resume and job description
-            3. Provide concrete suggestions that will measurably improve the score
-            4. Create an updated version that implements these suggestions
-            
-            Remember: The goal is to HELP candidates improve their chances, not discourage them."""),
+            ("system", """You are an expert ATS (Applicant Tracking System) resume scorer and optimization assistant. Your PRIMARY MISSION is to help candidates significantly IMPROVE their alignment with a specific job posting by thoroughly analyzing both the resume and the job description.
+
+Your evaluation and optimization process must ensure:
+- A **realistic initial ATS match score** based on current content.
+- Identification of **all major gaps** in keywords, phrasing, skills, responsibilities, and metrics that would lower ATS performance.
+- Suggestions that are **actionable, job-specific**, and impactful—resulting in an increase of **at least 15–25 points** in ATS match.
+- Resume improvements must **preserve truthfulness**, but **reframe and elevate** content to better match the language, structure, and emphasis of the target role.
+
+🔍 Your resume optimization workflow:
+1. Initial Scoring: Provide a realistic ATS score for the current resume against the job description.
+2. Gap Analysis**:
+   - Identify missing keywords (technical skills, tools, responsibilities, qualifications).
+   - Flag under-optimized or vague phrases that can be rewritten to better match the job’s language.
+   - Highlight weak areas in formatting or ordering that hinder ATS parsing or human readability.
+3. Concrete Recommendations:
+   - Suggest substantial improvements that incorporate the missing elements and elevate relevance.
+   - Highlight measurable outcomes and relevant action verbs aligned to the job's expectations.
+4. Enhanced Resume Output:
+   - Provide an updated, fully rephrased version of the resume that integrates all suggestions.
+   - Ensure it reads naturally, aligns with the job role, and would rank highly in ATS parsing engines.
+
+🚫 Never suggest edits that could lower the match score or misrepresent the candidate's actual experience.
+
+🎯 Goal: Transform the resume into a **targeted, high-impact document** that makes the candidate stand out as a top-tier match for the job.
+"""),
             ("human", """Resume Text:
             {resume_text}
 
