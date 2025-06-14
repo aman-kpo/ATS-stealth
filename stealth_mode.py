@@ -6,19 +6,11 @@ from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import WebBaseLoader
 import pdfplumber
 import PyPDF2
-import fitz  # PyMuPDF
 from PIL import Image
-import easyocr
 import os
 import tempfile
 import re
 import io
-
-# Fix for Windows OpenMP conflict
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
-# Set USER_AGENT to avoid warnings
-os.environ["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
 # Set page configuration
 st.set_page_config(
@@ -238,109 +230,53 @@ if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
 if 'analysis_result' not in st.session_state:
     st.session_state.analysis_result = None
-if 'ocr_reader' not in st.session_state:
-    st.session_state.ocr_reader = None
 
 # Helper functions
-@st.cache_resource
-def get_ocr_reader():
-    """Initialize OCR reader once and cache it"""
-    try:
-        return easyocr.Reader(['en'], gpu=False)  # Disable GPU for Windows compatibility
-    except Exception as e:
-        st.warning(f"OCR initialization warning: {e}")
-        return None
-
 def extract_text_from_pdf(pdf_path):
-    """Extracts text from a PDF using multiple methods without requiring poppler."""
+    """Extracts text from a PDF using multiple methods."""
     
-    # Method 1: Try pdfplumber first
+    # Method 1: Try pdfplumber first (most reliable)
     try:
         with pdfplumber.open(pdf_path) as pdf:
-            if pdf.pages:
-                all_text = ""
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        all_text += page_text + "\n"
-
-                if all_text.strip():
-                    return all_text.strip()
-                else:
-                    st.info("pdfplumber did not extract text. Trying PyPDF2...")
+            all_text = ""
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    all_text += page_text + "\n"
+            
+            if all_text.strip():
+                return all_text.strip()
     except Exception as e:
-        st.warning(f"pdfplumber failed: {e}. Trying PyPDF2...")
+        st.info(f"Method 1 failed: {e}")
     
-    # Method 2: Try PyPDF2
+    # Method 2: Try PyPDF2 as fallback
     try:
         with open(pdf_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
             all_text = ""
             
-            for page_num in range(len(pdf_reader.pages)):
-                page = pdf_reader.pages[page_num]
+            for page in pdf_reader.pages:
                 text = page.extract_text()
                 if text:
                     all_text += text + "\n"
             
             if all_text.strip():
                 return all_text.strip()
-            else:
-                st.info("PyPDF2 did not extract text. Trying PyMuPDF with OCR...")
     except Exception as e:
-        st.warning(f"PyPDF2 failed: {e}. Trying PyMuPDF with OCR...")
+        st.error(f"Method 2 also failed: {e}")
     
-    # Method 3: Use PyMuPDF (fitz) to convert PDF to images for OCR
-    try:
-        # Open the PDF with PyMuPDF
-        pdf_document = fitz.open(pdf_path)
-        
-        if len(pdf_document) == 0:
-            return "The PDF file is empty or has no pages."
-        
-        # Get the first page
-        page = pdf_document[0]
-        
-        # Convert page to image
-        mat = fitz.Matrix(2, 2)  # Increase resolution
-        pix = page.get_pixmap(matrix=mat)
-        img_data = pix.tobytes("png")
-        
-        # Convert to PIL Image
-        image = Image.open(io.BytesIO(img_data))
-        
-        # Save the image temporarily for OCR
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_img:
-            image_path = tmp_img.name
-            image.save(image_path, 'PNG')
-        
-        # Get or initialize OCR reader
-        reader = get_ocr_reader()
-        if reader is None:
-            return "OCR reader could not be initialized."
-        
-        # Read text from the image
-        result = reader.readtext(image_path)
-        
-        # Extract text
-        extracted_text = ""
-        for (bbox, text, prob) in result:
-            extracted_text += text + " "
-        
-        # Clean up
-        pdf_document.close()
-        try:
-            os.unlink(image_path)
-        except:
-            pass
-        
-        if extracted_text.strip():
-            return extracted_text.strip()
-        else:
-            return "Could not extract text from the PDF using any method."
-            
-    except Exception as e:
-        return f"All text extraction methods failed: {e}"
+    # If both methods fail
+    return """Could not extract text from the PDF. 
+    
+    This version doesn't support OCR for scanned PDFs. 
+    Please ensure your PDF contains selectable text (not scanned images).
+    
+    Tips:
+    - Try re-saving the PDF with a different PDF reader
+    - If it's a scanned document, use an OCR tool first to convert it
+    - Copy and paste the text into a new PDF
+    - Use a PDF with selectable text
+    """
 
 def analyze_and_update_resume(resume_text: str, job_description_text: str):
     """Analyze resume against job description and provide suggestions."""
@@ -440,16 +376,11 @@ def analyze_and_update_resume(resume_text: str, job_description_text: str):
 st.title("🎯 ATS Assassin - Stealth Mode")
 st.markdown("Upload your resume and job description to get AI-powered suggestions for improvement to enhance the ATS score.")
 
-# Installation instructions
-with st.expander("📦 Required Dependencies", expanded=False):
+# Note about PDF requirements
+with st.info:
     st.markdown("""
-    **Install the following packages:**
-    ```bash
-    pip install streamlit langchain-core langchain-openai langchain-community
-    pip install pydantic pdfplumber PyPDF2 pymupdf pillow easyocr
-    ```
-    
-    **Note:** This version doesn't require poppler! We use PyMuPDF (fitz) instead of pdf2image.
+    **Important:** This version works with PDFs containing selectable text. 
+    For scanned PDFs, please use an OCR tool first to convert them to text-based PDFs.
     """)
 
 # Sidebar for configuration
@@ -539,7 +470,7 @@ if st.button("🚀 Analyze Resume", type="primary", use_container_width=True):
                         st.error("Could not fetch content from the URL")
                         job_description_text = None
             
-            if job_description_text:
+            if job_description_text and "Could not extract text" not in job_description_text:
                 # Perform analysis
                 result = analyze_and_update_resume(resume_text, job_description_text)
                 
@@ -549,7 +480,7 @@ if st.button("🚀 Analyze Resume", type="primary", use_container_width=True):
                 else:
                     st.error(f"Analysis failed: {result['error']}")
             else:
-                st.error("Could not extract job description text")
+                st.error("Could not extract text from one or both PDFs. Please ensure they contain selectable text.")
                 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
