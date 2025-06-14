@@ -1,0 +1,15 @@
+aiofiles
+easyocr
+PyMuPDF==1.23.26
+langchain_community
+langchain_core
+langchain_openai
+numpy
+openai
+pdfplumber
+Pillow
+PyPDF2
+pytesseract
+scikit_learn
+streamlit
+stripe
