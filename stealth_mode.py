@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import WebBaseLoader
 import pdfplumber
 import PyPDF2
-import fitz 
+# import fitz 
 from PIL import Image
 import easyocr
 import os
