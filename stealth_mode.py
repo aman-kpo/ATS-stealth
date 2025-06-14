@@ -346,7 +346,7 @@ def analyze_and_update_resume(resume_text: str, job_description_text: str):
     """Analyze resume against job description and provide suggestions."""
     try:
         # Initialize LLM
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5)
         
         # Create prompt template
         prompt = ChatPromptTemplate.from_messages([
